@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Stwórz Trasę{% endblock %}
+
+{% block content %}
+<h2>Stwórz nową trasę</h2>
+<form method="POST">
+    {% csrf_token %}
+    <label for="name">Nazwa trasy:</label>
+    <input type="text" name="name" id="name" required>
+    <label for="background_image">Wybierz obraz tła:</label>
+    <select name="background_image" id="background_image">
+        {% for background in backgrounds %}
+        <option value="{{ background.id }}">{{ background.name }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Utwórz</button>
+</form>
+{% endblock %}

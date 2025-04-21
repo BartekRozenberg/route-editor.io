@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Lista Tras{% endblock %}
+
+{% block content %}
+<h2>Twoje Trasy</h2>
+<ul>
+    {% for route in routes %}
+    <li>
+        <a href="{% url 'edit_route' route.id %}">{{ route.name }}</a> - Obraz tła: {{ route.background_image.name }}
+    </li>
+    {% empty %}
+    <li>Nie masz jeszcze żadnych tras.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'create_route' %}">Stwórz nową trasę</a>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Szczegóły Trasy{% endblock %}
+
+{% block content %}
+<h2>Szczegóły Trasy: {{ route.name }}</h2>
+<p>Użytkownik: {{ route.user.username }}</p>
+<p>Obraz tła: {{ route.background_image.name }}</p>
+<img src="{{ route.background_image.image.url }}" alt="Obraz tła" style="max-width: 100%; height: auto;">
+
+<h3>Punkty Trasy</h3>
+<ul>
+    {% for point in route.points.all %}
+    <li>Punkt {{ forloop.counter }}: ({{ point.x }}, {{ point.y }})</li>
+    {% empty %}
+    <li>Brak punktów w tej trasie.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'route_list' %}">Powrót do listy tras</a>
+{% endblock %}

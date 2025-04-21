@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Edytuj Trasę{% endblock %}
+
+{% block content %}
+<h2>Edytuj Trasę: {{ route.name }}</h2>
+<p>Obraz tła: {{ route.background_image.name }}</p>
+<img src="{{ route.background_image.image.url }}" alt="Obraz tła" style="max-width: 100%; height: auto;">
+
+<h3>Dodaj Punkt</h3>
+<form method="POST">
+    {% csrf_token %}
+    <label for="x">Współrzędna X:</label>
+    <input type="number" step="0.01" name="x" id="x" required>
+    <label for="y">Współrzędna Y:</label>
+    <input type="number" step="0.01" name="y" id="y" required>
+    <button type="submit">Dodaj Punkt</button>
+</form>
+
+<h3>Punkty Trasy</h3>
+<ul>
+    {% for point in route.points.all %}
+    <li>Punkt {{ forloop.counter }}: ({{ point.x }}, {{ point.y }})</li>
+    {% empty %}
+    <li>Brak punktów w tej trasie.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'route_list' %}">Powrót do listy tras</a>
+{% endblock %}
