@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Route, Point
 from users.models import BackgroundImage
 from django.contrib.auth.decorators import login_required
+from django.core.serializers import serialize
+from django.http import JsonResponse
 
 @login_required
 def create_route(request):
@@ -25,6 +27,9 @@ def edit_route(request, route_id):
     if request.method == 'POST':
         x = request.POST.get('x')
         y = request.POST.get('y')
-        Point.objects.create(route=route, x=x, y=y)
+        if x and y:
+            Point.objects.create(route=route, x=float(x), y=float(y))
         return redirect('edit_route', route_id=route.id)
-    return render(request, 'routes/edit_route.html', {'route': route})
+
+    points = list(route.points.values('x', 'y'))
+    return render(request, 'routes/edit_route.html', {'route': route, 'points': points})

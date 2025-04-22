@@ -1,29 +1,153 @@
 {% extends "base.html" %}
 
+{% load static %}
+
 {% block title %}Edytuj Trasę{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'routes/css/styles.css' %}">
+{% endblock %}
 
 {% block content %}
 <h2>Edytuj Trasę: {{ route.name }}</h2>
 <p>Obraz tła: {{ route.background_image.name }}</p>
-<img src="{{ route.background_image.image.url }}" alt="Obraz tła" style="max-width: 100%; height: auto;">
 
-<h3>Dodaj Punkt</h3>
-<form method="POST">
+<!-- Interaktywny obraz -->
+<div style="position: relative; display: inline-block;">
+    <img
+        src="{{ route.background_image.image.url }}"
+        alt="Obraz tła"
+        id="background-image"
+        style="max-width: 70%; height: auto; cursor: default;"
+    >
+    <!-- Kontener na punkty -->
+    <div id="points-container" style="position: absolute; top: 0; left: 0;"></div>
+    <canvas id="route-canvas" style="position: absolute; top: 0; left: 0;"></canvas>
+</div>
+
+<!-- Przycisk do włączenia trybu dodawania punktów -->
+<button id="toggle-add-points" style="margin-top: 20px;">Dodaj Punkty</button>
+
+<!-- Formularz do dodawania punktów -->
+<form method="POST" id="add-point-form">
     {% csrf_token %}
-    <label for="x">Współrzędna X:</label>
-    <input type="number" step="0.01" name="x" id="x" required>
-    <label for="y">Współrzędna Y:</label>
-    <input type="number" step="0.01" name="y" id="y" required>
+    <input type="hidden" name="x" id="x">
+    <input type="hidden" name="y" id="y">
+</form>
+
+<!-- Formularz do ręcznego dodawania punktów -->
+<h3>Dodaj Punkt Ręcznie</h3>
+<form method="POST" id="manual-add-point-form">
+    {% csrf_token %}
+    <label for="manual-x">Współrzędna X:</label>
+    <input type="number" step="0.01" name="x" id="manual-x" required>
+    <label for="manual-y">Współrzędna Y:</label>
+    <input type="number" step="0.01" name="y" id="manual-y" required>
     <button type="submit">Dodaj Punkt</button>
 </form>
 
 <h3>Punkty Trasy</h3>
-<ul>
-    {% for point in route.points.all %}
+<ul id="points-list">
+    {% for point in points %}
     <li>Punkt {{ forloop.counter }}: ({{ point.x }}, {{ point.y }})</li>
     {% empty %}
     <li>Brak punktów w tej trasie.</li>
     {% endfor %}
 </ul>
 <a href="{% url 'route_list' %}">Powrót do listy tras</a>
+{% endblock %}
+
+{% block extra_js %}
+<script id="points-data" type="application/json">
+    {{ points|json_script:"points" }}
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const image = document.getElementById('background-image');
+        const form = document.getElementById('add-point-form');
+        const xInput = document.getElementById('x');
+        const yInput = document.getElementById('y');
+        const pointsContainer = document.getElementById('points-container');
+        const canvas = document.getElementById('route-canvas');
+        const ctx = canvas.getContext('2d');
+        const toggleAddPointsButton = document.getElementById('toggle-add-points');
+        let isAddingPoints = false;
+
+        // Ustaw rozmiar canvas na rozmiar obrazu
+        image.addEventListener('load', function () {
+            canvas.width = image.offsetWidth;
+            canvas.height = image.offsetHeight;
+            drawRoute();
+        });
+
+        // Obsługa kliknięcia na obraz w trybie dodawania punktów
+        image.addEventListener('click', function (event) {
+            if (!isAddingPoints) return;
+
+            const rect = image.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Ustaw współrzędne w ukrytych polach formularza
+            xInput.value = x.toFixed(2);
+            yInput.value = y.toFixed(2);
+
+            // Dodaj wizualny punkt na obrazie
+            addPointToImage(x, y);
+
+            // Automatycznie wyślij formularz
+            form.submit();
+        });
+
+        // Funkcja dodająca punkt na obrazie
+        function addPointToImage(x, y) {
+            console.log(`Dodawanie punktu: (${x}, ${y})`);
+            const point = document.createElement('div');
+            point.style.position = 'absolute';
+            point.style.width = '10px';
+            point.style.height = '10px';
+            point.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+            point.style.borderRadius = '50%';
+            point.style.left = `${x}px`;
+            point.style.top = `${y}px`;
+            pointsContainer.appendChild(point);
+        }
+
+        // Funkcja rysująca trasę na canvas
+        function drawRoute() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const points = JSON.parse(document.getElementById('points-data').textContent);
+            if (points.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // Dodaj istniejące punkty na obraz
+        const existingPoints = JSON.parse(document.getElementById('points-data').textContent);
+        console.log('Istniejące punkty:', existingPoints); // Debugowanie istniejących punktów
+        existingPoints.forEach(point => {
+            console.log(`Przekazywanie punktu do addPointToImage: (${point.x}, ${point.y})`);
+            addPointToImage(point.x, point.y);
+        });
+
+        // Obsługa przycisku "Dodaj Punkty"
+        toggleAddPointsButton.addEventListener('click', function () {
+            isAddingPoints = !isAddingPoints;
+            if (isAddingPoints) {
+                toggleAddPointsButton.textContent = 'Zakończ Dodawanie Punktów';
+                image.style.cursor = 'crosshair';
+            } else {
+                toggleAddPointsButton.textContent = 'Dodaj Punkty';
+                image.style.cursor = 'default';
+            }
+        });
+    });
+</script>
 {% endblock %}
